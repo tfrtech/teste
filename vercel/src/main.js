@@ -54,7 +54,9 @@ function escapeHtml(value) {
 }
 
 function readRoute() {
-  const parts = window.location.pathname.split('/').filter(Boolean);
+  const routeFromQuery = new URLSearchParams(window.location.search).get('path');
+  const path = routeFromQuery ? routeFromQuery : window.location.pathname;
+  const parts = path.split('/').filter(Boolean);
   const mesaIndex = parts.indexOf('mesa');
 
   if (mesaIndex === -1 || parts.length < mesaIndex + 3) {
