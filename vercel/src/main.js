@@ -10,11 +10,9 @@ const state = {
   error: '',
   step: 'intro',
   table: null,
-  store: {
-    storeName: 'Cardápio Digital',
-    logoEmoji: '🥟',
-    logoUrl: null,
-  },
+  storeName: 'Cardapio Digital',
+  logoEmoji: '🥟',
+  logoUrl: null,
   products: [],
   categories: [],
   cart: [],
@@ -26,7 +24,7 @@ const state = {
 };
 
 function phoneDigits(value) {
-  return value.replace(/\D/g, '').slice(0, 11);
+  return String(value || '').replace(/\D/g, '').slice(0, 11);
 }
 
 function formatPhone(value) {
@@ -38,10 +36,7 @@ function formatPhone(value) {
 }
 
 function money(value) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
 function escapeHtml(value) {
@@ -54,21 +49,16 @@ function escapeHtml(value) {
 }
 
 function readRoute() {
-  const routeFromQuery = new URLSearchParams(window.location.search).get('path');
-  const path = routeFromQuery ? routeFromQuery : window.location.pathname;
+  const fromQuery = new URLSearchParams(window.location.search).get('path');
+  const path = (fromQuery || window.location.pathname).trim();
   const parts = path.split('/').filter(Boolean);
   const mesaIndex = parts.indexOf('mesa');
 
-  if (mesaIndex === -1 || parts.length < mesaIndex + 3) {
-    return null;
-  }
+  if (mesaIndex === -1 || parts.length < mesaIndex + 3) return null;
 
   const tableId = Number(parts[mesaIndex + 1]);
   const tableCode = parts[mesaIndex + 2];
-
-  if (!Number.isInteger(tableId) || !tableCode) {
-    return null;
-  }
+  if (!Number.isInteger(tableId) || !tableCode) return null;
 
   return { tableId, tableCode };
 }
@@ -83,8 +73,8 @@ function cartCount() {
 
 function cartTotal() {
   return state.cart.reduce((sum, item) => {
-    const complementsTotal = item.complements.reduce((acc, complement) => acc + Number(complement.price), 0);
-    return sum + (Number(item.product.price) + complementsTotal) * item.quantity;
+    const compTotal = item.complements.reduce((acc, comp) => acc + Number(comp.price), 0);
+    return sum + (Number(item.product.price) + compTotal) * item.quantity;
   }, 0);
 }
 
@@ -112,6 +102,7 @@ function render() {
         </section>
       </main>
     `;
+    bindActions();
     return;
   }
 
@@ -126,6 +117,7 @@ function render() {
         </section>
       </main>
     `;
+    bindActions();
     return;
   }
 
@@ -150,7 +142,7 @@ function render() {
   if (state.step === 'cart') {
     const items = state.cart
       .map((item) => {
-        const complementsTotal = item.complements.reduce((sum, complement) => sum + Number(complement.price), 0);
+        const compTotal = item.complements.reduce((sum, comp) => sum + Number(comp.price), 0);
         return `
           <article class="cart-item">
             <div class="cart-image">
@@ -159,7 +151,7 @@ function render() {
             <div class="cart-main">
               <p class="cart-name">${escapeHtml(item.product.name)}</p>
               ${item.complements.length ? `<p class="cart-meta">+ ${item.complements.map((c) => escapeHtml(c.name)).join(', ')}</p>` : ''}
-              <p class="cart-price">${money((Number(item.product.price) + complementsTotal) * item.quantity)}</p>
+              <p class="cart-price">${money((Number(item.product.price) + compTotal) * item.quantity)}</p>
             </div>
             <div class="cart-controls">
               <button type="button" class="mini-button" data-action="decrease-cart" data-key="${escapeHtml(cartKey(item.product.id, item.complements))}">-</button>
@@ -177,11 +169,11 @@ function render() {
           <header class="menu-header">
             <div class="store-brand">
               <div class="store-logo">
-                ${state.store.logoUrl ? `<img src="${escapeHtml(state.store.logoUrl)}" alt="Logo">` : `<span>${escapeHtml(state.store.logoEmoji)}</span>`}
+                ${state.logoUrl ? `<img src="${escapeHtml(state.logoUrl)}" alt="Logo">` : `<span>${escapeHtml(state.logoEmoji)}</span>`}
               </div>
               <div>
-                <h1 class="store-title">${escapeHtml(state.store.storeName)}</h1>
-                <p class="store-subtitle">Mesa ${state.table?.tableId ?? '-'} • ${escapeHtml(state.customerName)}</p>
+                <h1 class="store-title">${escapeHtml(state.storeName)}</h1>
+                <p class="store-subtitle">${escapeHtml(state.table?.name || 'Mesa')} • ${escapeHtml(state.customerName)}</p>
               </div>
             </div>
             <button type="button" class="ghost-button" data-action="back-menu">← Cardápio</button>
@@ -319,11 +311,11 @@ function render() {
         <header class="menu-header">
           <div class="store-brand">
             <div class="store-logo">
-              ${state.store.logoUrl ? `<img src="${escapeHtml(state.store.logoUrl)}" alt="Logo">` : `<span>${escapeHtml(state.store.logoEmoji)}</span>`}
+              ${state.logoUrl ? `<img src="${escapeHtml(state.logoUrl)}" alt="Logo">` : `<span>${escapeHtml(state.logoEmoji)}</span>`}
             </div>
             <div>
-              <h1 class="store-title">${escapeHtml(state.store.storeName)}</h1>
-              <p class="store-subtitle">Mesa ${state.table?.tableId ?? '-'} • ${escapeHtml(state.customerName)}</p>
+              <h1 class="store-title">${escapeHtml(state.storeName)}</h1>
+              <p class="store-subtitle">${escapeHtml(state.table?.name || 'Mesa')} • ${escapeHtml(state.customerName)}</p>
             </div>
           </div>
           <div class="cart-chip">Carrinho: ${cartCount()} itens</div>
@@ -354,7 +346,6 @@ function render() {
       </section>
     </main>
   `;
-
   bindActions();
 }
 
@@ -366,8 +357,7 @@ function bindActions() {
   if (nameInput) {
     nameInput.addEventListener('input', (event) => {
       state.customerName = event.target.value;
-      const submit = document.querySelector('#customer-form button[type="submit"]');
-      if (submit) submit.disabled = !state.customerName.trim() || phoneDigits(state.customerPhone).length < 10;
+      render();
     });
   }
 
@@ -375,8 +365,6 @@ function bindActions() {
     phoneInput.addEventListener('input', (event) => {
       state.customerPhone = formatPhone(event.target.value);
       event.target.value = state.customerPhone;
-      const submit = document.querySelector('#customer-form button[type="submit"]');
-      if (submit) submit.disabled = !state.customerName.trim() || phoneDigits(state.customerPhone).length < 10;
     });
   }
 
@@ -388,7 +376,6 @@ function bindActions() {
         render();
         return;
       }
-
       state.step = 'menu';
       state.statusMessage = 'Cliente identificado. Agora escolha seus produtos.';
       render();
@@ -446,7 +433,6 @@ async function handleAction(event) {
   if (action === 'decrease-product') {
     const current = state.cart.find((item) => item.product.id === productId && item.complements.length === 0);
     if (!current) return;
-
     current.quantity -= 1;
     state.cart = state.cart.filter((item) => item.quantity > 0);
     render();
@@ -457,12 +443,10 @@ async function handleAction(event) {
     const item = state.cart.find((entry) => cartKey(entry.product.id, entry.complements) === key);
     if (!item) return;
 
-    if (action === 'increase-cart') {
-      if (item.quantity >= Number(item.product.stock)) {
-        state.statusMessage = 'Estoque insuficiente para adicionar mais unidades.';
-        render();
-        return;
-      }
+    if (action === 'increase-cart' && item.quantity >= Number(item.product.stock)) {
+      state.statusMessage = 'Estoque insuficiente para adicionar mais unidades.';
+      render();
+      return;
     }
 
     item.quantity += action === 'increase-cart' ? 1 : -1;
@@ -479,7 +463,7 @@ async function submitOrder() {
   render();
 
   const payload = {
-    table_id: state.table.tableId,
+    table_id: state.table.id,
     table_name: state.table.name,
     customer_name: state.customerName.trim(),
     customer_phone: phoneDigits(state.customerPhone),
@@ -523,14 +507,13 @@ async function loadData() {
   }
 
   try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      throw new Error('Defina VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY no projeto da Vercel.');
-    }
-
     state.supabase = getClient();
 
     const [tableResult, productsResult, categoriesResult, settingsResult] = await Promise.all([
-      state.supabase.rpc('get_public_table_by_qr', { p_table_id: route.tableId, p_table_code: route.tableCode }),
+      state.supabase.rpc('get_public_table_by_qr', {
+        p_table_id: route.tableId,
+        p_table_code: route.tableCode,
+      }),
       state.supabase.rpc('get_public_menu_products'),
       state.supabase.rpc('get_public_menu_categories'),
       state.supabase.rpc('get_public_store_settings'),
@@ -549,7 +532,12 @@ async function loadData() {
       return;
     }
 
-    state.table = table;
+    state.table = {
+      id: Number(table.id),
+      name: table.name,
+      code: route.tableCode,
+    };
+
     state.products = (productsResult.data ?? []).map((product) => ({
       id: product.id,
       name: product.name,
@@ -569,9 +557,9 @@ async function loadData() {
 
     const settings = settingsResult.data?.[0];
     if (settings) {
-      state.store.storeName = settings.store_name ?? state.store.storeName;
-      state.store.logoEmoji = settings.logo_emoji ?? state.store.logoEmoji;
-      state.store.logoUrl = settings.logo_url ?? null;
+      state.storeName = settings.store_name ?? state.storeName;
+      state.logoEmoji = settings.logo_emoji ?? state.logoEmoji;
+      state.logoUrl = settings.logo_url ?? null;
     }
 
     state.loading = false;
